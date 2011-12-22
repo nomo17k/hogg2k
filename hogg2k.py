@@ -54,7 +54,7 @@ class Cosmos(object):
     def __init__(self, omega_matter=0.3, omega_lambda=0.7, h_100=0.7):
         self.cosmos = (omega_matter, omega_lambda, h_100)
 
-    def D_H(self)
+    def D_H(self):
         """
         Computes the Hubble distance in Mpc
 
