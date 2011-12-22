@@ -11,6 +11,10 @@ SciPy and NumPy
 
 HISTORY
 
+December 22, 2011 (ver 0.3)
+  -- Minor corrections in doc strings.
+  -- Minor corrections in codes.
+
 August 3, 2007 (ver 0.2)
   -- Make the whole thing into a class for better organization.
 
@@ -18,15 +22,19 @@ March 23, 2006 (ver 0.1)
   -- Implements most essential functions.  The results are checked
      against the figures in Hogg.
 """
-__version__ = '0.2 (August 3, 2007)'
-__credits__ = '''The code is written by Taro Sato (nomo17k@gmail.com)'''
+
+__version__ = '0.3 (December 22, 2011)'
+__credits__ = '''The code is written by Taro Sato (ubutsu@gmail.com)'''
+
 
 import numpy as N
 from scipy import integrate
+from scipy.constants import c
+
 
 # frequently used constants
-H0 = 100.         # Hubble constant in km/s/Mpc
-c = 2.99792458e5  # speed of light in km/s
+H0 = 100.     # Hubble constant in km/s/Mpc
+c = c / 1e3   # speed of light in km/s
 
 
 def E(z, om, ol):
@@ -46,17 +54,13 @@ class Cosmos(object):
     def __init__(self, omega_matter=0.3, omega_lambda=0.7, h_100=0.7):
         self.cosmos = (omega_matter, omega_lambda, h_100)
 
-    def D_H(self, z):
+    def D_H(self)
         """
         Computes the Hubble distance in Mpc
 
         REFERENCE
 
           Eq. (4) of astro-ph/9905116
-
-        INPUT
-
-          z -- redshift
         """
         return c / H0 / self.cosmos[2]
 
@@ -77,11 +81,11 @@ class Cosmos(object):
                                + (1. - om - ol) * (1. + z)**2 + ol)
         om, ol, h = self.cosmos
         res = integrate.quad(lambda x: integrand(x, om, ol), 0., z)
-        return self.D_H(z) * res[0]
+        return self.D_H() * res[0]
 
     def D_M(self, z):
         """
-        Computes transverse comoving distance in Mpc
+        Computes transverse comoving distance in Mpc per radian
 
         REFERENCE
 
@@ -93,7 +97,7 @@ class Cosmos(object):
         """
         om, ol, h = self.cosmos
         _D_C = self.D_C(z)
-        _D_H = self.D_H(z)
+        _D_H = self.D_H()
         ok = 1. - om - ol
         if ok > 0.:
             _D_M = (_D_H / N.sqrt(ok)) * N.sinh(N.sqrt(ok) * _D_C / _D_H)
@@ -106,7 +110,7 @@ class Cosmos(object):
 
     def D_A(self, z):
         """
-        Computes angular diameter distance in Mpc
+        Computes angular diameter distance in Mpc per radian
 
         REFERENCE
 
@@ -165,7 +169,7 @@ class Cosmos(object):
         """
         om, ol, h = self.cosmos
         ok = 1. - om - ol
-        _D_H = self.D_H(z)
+        _D_H = self.D_H()
         _D_A = self.D_A(z)
         return _D_H * (1. + z)**2 * _D_A**2 / E(z, om, ol)
 
@@ -187,7 +191,7 @@ class Cosmos(object):
         _D_M = self.D_M(z)
         if ok == 0.: _V_C = 4. * N.pi * _D_M**3 / 3.
         else:
-            _D_H = self.D_H(z)
+            _D_H = self.D_H()
             mh = _D_M / _D_H
             if ok > 0.:
                 _V_C = ((2. * N.pi * _D_H**3 / ok)
@@ -279,7 +283,7 @@ class Cosmos(object):
           z -- redshift
         """
         om, ol, h = self.cosmos
-        return self.D_H(z) * (1. + z)**2 / E(z, om, ol)
+        return self.D_H() * (1. + z)**2 / E(z, om, ol)
 
 
 if __name__ == '__main__':
