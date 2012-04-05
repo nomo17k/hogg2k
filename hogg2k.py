@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 """
 David Hogg's distance measures in cosmology
 
@@ -10,6 +10,10 @@ REQUIREMENTS
 SciPy and NumPy
 
 HISTORY
+
+April 5, 2012 (ver 0.4)
+  -- Minor reorganiations of constants.
+  -- Cleaning up codes.
 
 December 22, 2011 (ver 0.3)
   -- Minor corrections in doc strings.
@@ -23,22 +27,21 @@ March 23, 2006 (ver 0.1)
      against the figures in Hogg.
 """
 
-__version__ = '0.3 (December 22, 2011)'
+__version__ = '0.4 (April 5, 2012)'
 __credits__ = '''The code is written by Taro Sato (ubutsu@gmail.com)'''
 
 
-import numpy as N
+from numpy import arcsin, inf, log10, pi, sin, sinh, sqrt
 from scipy import integrate
 from scipy.constants import c
 
 
 # frequently used constants
-H0 = 100.     # Hubble constant in km/s/Mpc
 c = c / 1e3   # speed of light in km/s
 
 
 def E(z, om, ol):
-    return N.sqrt(om * (1. + z)**3 + (1. - om - ol) * (1. + z)**2 + ol)
+    return sqrt(om * (1. + z)**3 + (1. - om - ol) * (1. + z)**2 + ol)
 
 
 class Cosmos(object):
@@ -52,8 +55,16 @@ class Cosmos(object):
     """
 
     def __init__(self, omega_matter=0.3, omega_lambda=0.7, h_100=0.7):
-        self.cosmos = (omega_matter, omega_lambda, h_100)
+        self.om = omega_matter
+        self.ol = omega_lambda
+        self.h = h_100
 
+    @property
+    def H0(self):
+        """Hubble constant in km/s/Mpc"""
+        return 100. * self.h
+
+    @property
     def D_H(self):
         """
         Computes the Hubble distance in Mpc
@@ -62,7 +73,7 @@ class Cosmos(object):
 
           Eq. (4) of astro-ph/9905116
         """
-        return c / H0 / self.cosmos[2]
+        return c / self.H0
 
     def D_C(self, z):
         """
@@ -77,11 +88,11 @@ class Cosmos(object):
           z -- redshift
         """
         def integrand(z, om, ol):
-            return 1. / N.sqrt(om * (1. + z)**3
-                               + (1. - om - ol) * (1. + z)**2 + ol)
-        om, ol, h = self.cosmos
+            return 1. / sqrt(om * (1. + z)**3
+                             + (1. - om - ol) * (1. + z)**2 + ol)
+        om, ol, h = self.om, self.ol, self.h
         res = integrate.quad(lambda x: integrand(x, om, ol), 0., z)
-        return self.D_H() * res[0]
+        return self.D_H * res[0]
 
     def D_M(self, z):
         """
@@ -95,17 +106,16 @@ class Cosmos(object):
 
           z -- redshift
         """
-        om, ol, h = self.cosmos
+        om, ol, h = self.om, self.ol, self.h
         _D_C = self.D_C(z)
-        _D_H = self.D_H()
+        _D_H = self.D_H
         ok = 1. - om - ol
         if ok > 0.:
-            _D_M = (_D_H / N.sqrt(ok)) * N.sinh(N.sqrt(ok) * _D_C / _D_H)
+            _D_M = (_D_H / sqrt(ok)) * sinh(sqrt(ok) * _D_C / _D_H)
         elif ok == 0.:
             _D_M = _D_C
         else:
-            _D_M = (_D_H / N.sqrt(abs(ok))) * N.sin(N.sqrt(abs(ok))
-                                                    * _D_C / _D_H)
+            _D_M = (_D_H / sqrt(abs(ok))) * sin(sqrt(abs(ok)) * _D_C / _D_H)
         return _D_M
 
     def D_A(self, z):
@@ -148,7 +158,7 @@ class Cosmos(object):
 
           z -- redshift
         """
-        return 5. * N.log10(self.D_L(z) * 1e6 / 10.)
+        return 5. * log10(self.D_L(z) * 1e6 / 10.)
 
     def dV_C(self, z):
         """
@@ -167,9 +177,9 @@ class Cosmos(object):
 
           z -- redshift
         """
-        om, ol, h = self.cosmos
+        om, ol, h = self.om, self.ol, self.h
         ok = 1. - om - ol
-        _D_H = self.D_H()
+        _D_H = self.D_H
         _D_A = self.D_A(z)
         return _D_H * (1. + z)**2 * _D_A**2 / E(z, om, ol)
 
@@ -186,26 +196,27 @@ class Cosmos(object):
 
           z -- redshift
         """
-        om, ol, h = self.cosmos
+        om, ol, h = self.om, self.ol, self.h
         ok = 1. - om - ol
         _D_M = self.D_M(z)
-        if ok == 0.: _V_C = 4. * N.pi * _D_M**3 / 3.
+        if ok == 0.: _V_C = 4. * pi * _D_M**3 / 3.
         else:
-            _D_H = self.D_H()
+            _D_H = self.D_H
             mh = _D_M / _D_H
             if ok > 0.:
-                _V_C = ((2. * N.pi * _D_H**3 / ok)
-                        * (mh * N.sqrt(1. + ok * mh**2)
-                           - N.arcsinh(mh * N.sqrt(abs(ok)))
-                           / N.sqrt(abs(ok))))
+                _V_C = ((2. * pi * _D_H**3 / ok)
+                        * (mh * sqrt(1. + ok * mh**2)
+                           - arcsinh(mh * sqrt(abs(ok)))
+                           / sqrt(abs(ok))))
             else:
-                _V_C = ((2. * N.pi * _D_H**3 / ok)
-                        * (mh * N.sqrt(1. + ok * mh**2)
-                           - N.arcsin(mh * N.sqrt(abs(ok)))
-                           / N.sqrt(abs(ok))))
+                _V_C = ((2. * pi * _D_H**3 / ok)
+                        * (mh * sqrt(1. + ok * mh**2)
+                           - arcsin(mh * sqrt(abs(ok)))
+                           / sqrt(abs(ok))))
         return _V_C
 
-    def t_H(self, z):
+    @property
+    def t_H(self):
         """
         Computes the Hubble time in Gyr
 
@@ -217,9 +228,9 @@ class Cosmos(object):
 
           z -- redshift
         """
-        _t_H = 1. / H0 / self.cosmos[2]
+        _t_H = 1. / self.H0
         _t_H *= 1e-3 * 1e6 * 3.0856776e16  # -> s
-        _t_H *= (1 / (365.25 * 24 * 3600)) * 1e-9  # s -> Gyr
+        _t_H *= (1. / (365.25 * 24 * 3600)) * 1e-9  # s -> Gyr
         return _t_H
 
     def t_L(self, z):
@@ -235,12 +246,12 @@ class Cosmos(object):
           z -- redshift
         """
         def integrand(z, om, ol):
-            return 1. / (1. + z) / N.sqrt(om * (1. + z)**3
-                                          + (1. - om - ol) * (1. + z)**2
-                                          + ol)
-        om, ol, h = self.cosmos
+            return 1. / (1. + z) / sqrt(om * (1. + z)**3
+                                        + (1. - om - ol) * (1. + z)**2
+                                        + ol)
+        om, ol, h = self.om, self.ol, self.h
         res = integrate.quad(lambda x: integrand(x, om, ol), 0., z)
-        return self.t_H(z) * res[0]
+        return self.t_H * res[0]
 
     def t(self, z):
         """
@@ -256,12 +267,12 @@ class Cosmos(object):
           z -- redshift
         """
         def integrand(z, om, ol):
-            return 1. / (1. + z) / N.sqrt(om * (1. + z)**3
-                                          + (1. - om - ol) * (1. + z)**2
-                                          + ol)
-        om, ol, h = self.cosmos
-        res = integrate.quad(lambda x: integrand(x, om, ol), z, +N.inf)
-        return self.t_H(z) * res[0]
+            return 1. / (1. + z) / sqrt(om * (1. + z)**3
+                                        + (1. - om - ol) * (1. + z)**2
+                                        + ol)
+        om, ol, h = self.om, self.ol, self.h
+        res = integrate.quad(lambda x: integrand(x, om, ol), z, +integrate.Inf)
+        return self.t_H * res[0]
 
     def dP(self, z):
         """
@@ -282,8 +293,8 @@ class Cosmos(object):
 
           z -- redshift
         """
-        om, ol, h = self.cosmos
-        return self.D_H() * (1. + z)**2 / E(z, om, ol)
+        om, ol, h = self.om, self.ol, self.h
+        return self.D_H * (1. + z)**2 / E(z, om, ol)
 
 
 if __name__ == '__main__':
@@ -299,5 +310,3 @@ if __name__ == '__main__':
     D2 = cd2
 
     print D1, D2
-
-
